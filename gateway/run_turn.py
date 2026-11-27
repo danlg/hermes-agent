@@ -1165,6 +1165,12 @@ class GatewayTurnMixin(GatewayTurnPrepareMixin, GatewayTurnHygieneMixin, Gateway
         turn_runner = TurnRunner(self, turn_ctx)
         turn_ctx.mute_notification_reply = diagnostic_turn_muted(
             turn_ctx.persist_user_display_metadata, source.platform, turn_ctx.user_config)
+        if (source.platform == Platform.TELEGRAM and not turn_ctx.scheduled_heartbeat
+                and not turn_ctx.mute_notification_reply
+                and disp.resolve_display_setting(disp.user_config, disp.platform_key, "stup_updates")):
+            from gateway.stup_progress import TelegramStupProgress
+
+            turn_ctx.stup_progress = TelegramStupProgress(turn_ctx.persist_user_message or message)
         # Agent tool-lifecycle callbacks live on the runner (bound methods, same signatures).
         turn_ctx.progress_callback = turn_runner.progress_callback
         turn_ctx.voice_ack_callback = turn_runner.voice_ack_callback
@@ -2230,6 +2236,13 @@ class GatewayTurnMixin(GatewayTurnPrepareMixin, GatewayTurnHygieneMixin, Gateway
         _long_running_mode = disp._display_surface_mode("long_running_notifications", default=True, allow_generic=True)
         if _NOTIFY_INTERVAL <= 0 or _long_running_mode == "off":
             return
+        progress = turn_ctx.stup_progress
+        lifecycle = {}
+        if progress is not None:
+            from gateway.stup_progress import STUP_INTERVAL_SECONDS, send_stup
+
+            _NOTIFY_INTERVAL = STUP_INTERVAL_SECONDS
+            lifecycle = {"allow_restart_wait": True}
         source, session_key, agent_holder = turn_ctx.source, turn_ctx.session_key, turn_ctx.agent_holder
         _status_thread_metadata = turn_ctx._status_thread_metadata
         _notify_adapter = self._delivery_adapter_for(source)
@@ -2239,9 +2252,17 @@ class GatewayTurnMixin(GatewayTurnPrepareMixin, GatewayTurnHygieneMixin, Gateway
         while True:
             await asyncio.sleep(_NOTIFY_INTERVAL)
             if not self._should_emit_long_running_notification(
-                session_key, agent_holder[0], _executor_task_holder[0]
+                session_key, agent_holder[0], _executor_task_holder[0], **lifecycle
             ):
                 break
+            if progress is not None:
+                if not turn_ctx._run_still_current():
+                    break
+                await send_stup(
+                    _notify_adapter, source.chat_id, progress,
+                    _interim_metadata(_non_conversational_metadata(_status_thread_metadata, platform=source.platform)),
+                )
+                continue
             _elapsed_mins = int((time.time() - _notify_start) // 60)
             # Terse heartbeat by default; the iteration counter is gated on busy_ack_detail.
             _status_detail = ""

@@ -40,6 +40,18 @@ def _set_extra_header(api_kwargs: Any, key: str, value: str) -> None:
     api_kwargs["extra_headers"] = _xh
 
 
+def report_request_runtime(agent: Any, request: dict) -> None:
+    """Report the active attempt's wire values to the turn's display observer."""
+    callback = getattr(agent, "request_runtime_callback", None)
+    if not callable(callback):
+        return
+    extra = request.get("extra_body")
+    wire = request | extra if isinstance(extra, dict) else request
+    reasoning = wire.get("reasoning")
+    effort = reasoning.get("effort") if isinstance(reasoning, dict) else wire.get("reasoning_effort")
+    callback(wire.get("model"), effort, wire.get("service_tier"))
+
+
 def _fire_pre_api_request_hook(
     agent: Any, api_kwargs: Any, api_messages: Any, _llm_middleware_trace: Any, *, messages: Any,
     original_user_message: Any, approx_tokens: Any, total_chars: Any, retry_count: Any,

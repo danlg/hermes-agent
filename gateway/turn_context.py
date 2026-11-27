@@ -30,6 +30,7 @@ class TurnContext:
     tool_progress_enabled: bool = False
     progress_queue: Any = None
     log_queue: Any = None
+    stup_progress: Any = None
     # mutable single-element containers (shared with the outer body)
     last_progress_msg: list = field(default_factory=lambda: [None])
     last_tool: list = field(default_factory=lambda: [None])

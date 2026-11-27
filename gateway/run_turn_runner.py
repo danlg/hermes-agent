@@ -448,6 +448,9 @@ class TurnRunner(GatewayTurnProgressMixin, GatewaySessionAgentMixin):
         if self._approval_owner is not None:
             agent.tool_start_callback = self.combined_tool_start_callback
             agent.tool_complete_callback = self.combined_tool_complete_callback
+        agent.request_runtime_callback = None
+        if ctx.stup_progress is not None:
+            ctx.stup_progress.observe_agent(agent, ctx._run_still_current)
         agent.step_callback = ctx._step_callback_sync if (ctx._hooks_ref.loaded_hooks or self._approval_owner is not None) else None
         agent.stream_delta_callback = stream_delta_cb
         agent.interim_assistant_callback = interim_assistant_cb if want_interim_messages else None
