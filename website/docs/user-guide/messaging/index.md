@@ -890,12 +890,6 @@ Telegram is usually a mobile inbox, so the defaults are tuned for that surface:
 
 These per-platform defaults apply only while the same key is unset directly under `display:`. A global `display.tool_progress`, `display.show_reasoning`, `display.busy_ack_detail`, `display.interim_assistant_messages` or `display.long_running_notifications` applies to every platform and replaces its default. A `config.yaml` copied from an older `cli-config.yaml.example` sets all five globally, and an older first-time `hermes setup` wrote `tool_progress: all`; delete those lines to get the per-platform defaults back.
 
-Set `display.platforms.telegram.stup_updates: true` to get a new structured progress
-message every two minutes while Telegram is handling your turn. It reports observed
-milestones, what remains, and the objective. This uses the same routing and enablement
-as `long_running_notifications`. Disabling long-running notifications or setting
-`agent.gateway_notify_interval: 0` disables both formats.
-
 Opt out of either of the kept-on defaults or opt back into verbose progress per platform:
 
 ```yaml

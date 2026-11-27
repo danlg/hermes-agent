@@ -1188,8 +1188,7 @@ class GatewayShutdownMixin(GatewaySessionEndMixin):
             await self._cleanup_agent_resources_off_loop(agent, context="shutdown finalize", session_key=session_key)
 
     def _should_emit_long_running_notification(
-        self, session_key: Optional[str], agent: Any, executor_task: Optional[Any], *,
-        allow_restart_wait: bool = False,
+        self, session_key: Optional[str], agent: Any, executor_task: Optional[Any],
     ) -> bool:
         """Emit the heartbeat only while this task still owns the live run (not after ``/new`` rebinds).
 
@@ -1202,10 +1201,7 @@ class GatewayShutdownMixin(GatewaySessionEndMixin):
         # Drain/restart already told the chat the task will be interrupted; a "still working"
         # heartbeat after that notice reads as a contradiction (#10990).
         if getattr(self, "_draining", False) or getattr(self, "_restart_requested", False):
-            from gateway.drain_control import restart_wait_open
-
-            if not (allow_restart_wait and restart_wait_open(self)):
-                return False
+            return False
         if session_key:
             _hb_state = self._peek_session_state(session_key)
             if (_hb_state.turn.agent if _hb_state else None) is not agent:
